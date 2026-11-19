@@ -1,0 +1,1750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AUTOPIXEL // LAST SHIFT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    window.THREE_LOADED = typeof THREE !== 'undefined';
+  </script>
+  <style>
+    :root {
+      --bg-void: #040508;
+      --bg-surface: #0a0c14;
+      --accent-red: #ef4444;
+      --accent-red-glow: rgba(239, 68, 68, 0.35);
+      --accent-blue: #00e5ff;
+      --accent-blue-glow: rgba(0, 229, 255, 0.3);
+      --text-primary: #f4f6fb;
+      --text-secondary: #98a2b3;
+      --font-display: 'Space Grotesk', sans-serif;
+      --font-body: 'Inter', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-void);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+    }
+
+    .crt-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 999;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.32) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      background-size: 100% 3px, 4px 100%;
+      opacity: 0.65;
+    }
+
+    .vignette {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 998;
+      box-shadow: inset 0 0 150px rgba(0, 0, 0, 0.95);
+    }
+
+    .screen {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 50% 30%, #101320 0%, #040508 72%);
+      transition: opacity 0.5s ease;
+    }
+
+    .screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .brand-tag {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.22em;
+      color: var(--accent-blue);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .game-title {
+      font-family: var(--font-display);
+      font-size: clamp(3rem, 7vw, 6rem);
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #fff;
+      text-shadow: 0 0 45px rgba(239, 68, 68, 0.45);
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .game-subtitle {
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      letter-spacing: 0.25em;
+      color: var(--accent-red);
+      text-transform: uppercase;
+      margin-bottom: 48px;
+    }
+
+    .menu-options {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      width: 100%;
+      max-width: 320px;
+    }
+
+    .btn {
+      padding: 16px 28px;
+      background: rgba(17, 20, 34, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-primary);
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .btn:hover {
+      background: rgba(239, 68, 68, 0.18);
+      border-color: var(--accent-red);
+      color: #fff;
+      box-shadow: 0 0 25px var(--accent-red-glow);
+      transform: translateY(-2px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(139, 92, 246, 0.25));
+      border-color: rgba(239, 68, 68, 0.5);
+    }
+
+    #game-hud {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 50;
+      display: none;
+      padding: 24px;
+    }
+
+    #game-hud.active {
+      display: block;
+    }
+
+    .hud-top-left {
+      position: absolute;
+      top: 24px;
+      left: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-family: var(--font-mono);
+    }
+
+    .hud-time {
+      font-size: 1.8rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--text-primary);
+      text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+    }
+
+    .hud-power-bar-wrap {
+      width: 190px;
+      height: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 3px;
+      overflow: hidden;
+      padding: 2px;
+    }
+
+    .hud-power-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #00e5ff, #8b5cf6);
+      transition: width 0.3s ease;
+    }
+
+    .hud-power-label {
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+    }
+
+    .hud-status-pills {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .status-pill {
+      font-size: 0.65rem;
+      padding: 3px 7px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-secondary);
+      letter-spacing: 0.1em;
+    }
+
+    .status-pill.active {
+      background: rgba(0, 229, 255, 0.15);
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+    }
+
+    .status-pill.alert {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: var(--accent-red);
+      color: var(--accent-red);
+    }
+
+    .hud-top-right {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      text-align: right;
+      font-family: var(--font-mono);
+      background: rgba(10, 12, 20, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 16px;
+      border-radius: 8px;
+      max-width: 290px;
+      backdrop-filter: blur(10px);
+    }
+
+    .objective-title {
+      font-size: 0.7rem;
+      letter-spacing: 0.16em;
+      color: var(--accent-blue);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .objective-text {
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      line-height: 1.4;
+    }
+
+    .crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 6px;
+      height: 6px;
+      border: 1.5px solid rgba(255, 255, 255, 0.55);
+      border-radius: 50%;
+      pointer-events: none;
+      transition: transform 0.15s ease, background-color 0.15s ease;
+    }
+
+    .crosshair.interactive {
+      transform: translate(-50%, -50%) scale(1.7);
+      background-color: var(--accent-blue);
+      border-color: var(--accent-blue);
+    }
+
+    .interaction-prompt {
+      position: absolute;
+      bottom: 64px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+      background: rgba(10, 12, 20, 0.92);
+      border: 1px solid rgba(0, 229, 255, 0.35);
+      padding: 10px 20px;
+      border-radius: 6px;
+      color: #fff;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .interaction-prompt.visible {
+      opacity: 1;
+    }
+
+    #cctv-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      background: rgba(4, 5, 10, 0.92);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 32px;
+    }
+
+    #cctv-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .cctv-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+    }
+
+    .cctv-title {
+      font-size: 1.2rem;
+      letter-spacing: 0.2em;
+      color: var(--accent-blue);
+    }
+
+    .cctv-rec {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      letter-spacing: 0.14em;
+      color: var(--accent-red);
+    }
+
+    .rec-dot {
+      width: 10px;
+      height: 10px;
+      background: var(--accent-red);
+      border-radius: 50%;
+      animation: pulseRec 1.2s infinite;
+    }
+
+    @keyframes pulseRec {
+      0%, 100% { opacity: 0.25; }
+      50% { opacity: 1; }
+    }
+
+    .cctv-viewport {
+      position: relative;
+      flex: 1;
+      margin: 20px 0;
+      border: 1px solid rgba(0, 229, 255, 0.35);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #000;
+      box-shadow: inset 0 0 60px rgba(0, 229, 255, 0.15);
+    }
+
+    #cctv-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .cctv-controls {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .cam-btn {
+      padding: 12px 24px;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      letter-spacing: 0.12em;
+      background: rgba(17, 20, 34, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-secondary);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .cam-btn.active, .cam-btn:hover {
+      background: rgba(0, 229, 255, 0.15);
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+      box-shadow: 0 0 15px var(--accent-blue-glow);
+    }
+
+    #terminal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      background: rgba(4, 5, 10, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px;
+    }
+
+    #terminal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .terminal-box {
+      width: 100%;
+      max-width: 800px;
+      height: 500px;
+      background: #06080e;
+      border: 1px solid var(--accent-blue);
+      box-shadow: 0 0 40px rgba(0, 229, 255, 0.2);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      font-family: var(--font-mono);
+    }
+
+    .terminal-header {
+      display: flex;
+      justify-content: space-between;
+      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 0.85rem;
+      color: var(--accent-blue);
+    }
+
+    .terminal-content {
+      flex: 1;
+      padding: 20px 0;
+      font-size: 0.9rem;
+      color: #bae6fd;
+      line-height: 1.65;
+      overflow-y: auto;
+    }
+
+    .terminal-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(4, 5, 10, 0.92);
+      backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 480px;
+      background: var(--bg-surface);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 36px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85);
+    }
+
+    .modal-card h2 {
+      font-family: var(--font-display);
+      font-size: 1.6rem;
+      margin-bottom: 24px;
+      letter-spacing: 0.04em;
+    }
+
+    .setting-group {
+      margin-bottom: 20px;
+    }
+
+    .setting-group label {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .setting-group input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent-blue);
+    }
+
+    #end-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 1s ease;
+      text-align: center;
+      padding: 24px;
+    }
+
+    #end-screen.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    #end-screen h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      margin-bottom: 16px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    #end-screen p {
+      font-family: var(--font-mono);
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      max-width: 600px;
+      line-height: 1.7;
+      margin-bottom: 36px;
+    }
+
+    #loading-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 400;
+      background: #040508;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.6s ease;
+    }
+
+    #loading-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loading-bar-wrap {
+      width: 280px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 24px;
+    }
+
+    .loading-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: var(--accent-blue);
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+  <div class="crt-overlay"></div>
+  <div class="vignette"></div>
+
+  <!-- Loading Screen -->
+  <div id="loading-screen">
+    <div class="brand-tag">AUTOPIXEL STUDIOS PRESENTS</div>
+    <div class="game-title" style="font-size: 2.5rem;">LAST SHIFT</div>
+    <div class="loading-bar-wrap">
+      <div class="loading-bar-fill" id="loading-bar-fill"></div>
+    </div>
+    <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary); margin-top: 14px;" id="loading-text">GENERATING FACILITY TEXTURES...</div>
+  </div>
+
+  <!-- Main Menu Screen -->
+  <div class="screen" id="main-menu">
+    <div class="brand-tag">AUTOPIXEL PRESENTS</div>
+    <h1 class="game-title">LAST SHIFT</h1>
+    <p class="game-subtitle">SURVIVE THE NIGHT // 12:00 AM – 6:00 AM</p>
+    <div class="menu-options">
+      <button class="btn btn-primary" id="btn-start">START SHIFT</button>
+      <button class="btn" id="btn-settings">SETTINGS</button>
+      <button class="btn" id="btn-instructions">HOW TO PLAY</button>
+    </div>
+  </div>
+
+  <!-- Instructions Modal -->
+  <div class="modal" id="instructions-modal">
+    <div class="modal-card">
+      <h2>OPERATIONAL PROTOCOL</h2>
+      <p style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-secondary); line-height: 1.7; margin-bottom: 24px;">
+        • <strong style="color: #fff;">WASD</strong> to walk through the security station.<br>
+        • <strong style="color: #fff;">MOUSE</strong> to look around (Click screen to lock cursor).<br>
+        • <strong style="color: #fff;">F</strong> to toggle your handheld tactical flashlight.<br>
+        • <strong style="color: #fff;">E</strong> to interact with monitors, terminals, blast doors, and wall switches.<br>
+        • <strong style="color: #fff;">CONTAINMENT:</strong> Watch CCTV feeds for Subject 7. Seal the blast door if it approaches the corridor, but conserve power!
+      </p>
+      <button class="btn btn-primary" id="btn-close-instructions" style="width: 100%;">ACKNOWLEDGE &amp; CLOSE</button>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal" id="settings-modal">
+    <div class="modal-card">
+      <h2>SYSTEM SETTINGS</h2>
+      <div class="setting-group">
+        <label>Mouse Sensitivity</label>
+        <input type="range" id="sensitivity-range" min="0.5" max="3" step="0.1" value="1.5">
+      </div>
+      <div class="setting-group">
+        <label>Master Audio Volume</label>
+        <input type="range" id="volume-range" min="0" max="1" step="0.05" value="0.75">
+      </div>
+      <button class="btn btn-primary" id="btn-close-settings" style="width: 100%; margin-top: 12px;">SAVE &amp; CLOSE</button>
+    </div>
+  </div>
+
+  <!-- Pause Menu -->
+  <div class="modal" id="pause-modal">
+    <div class="modal-card">
+      <h2>SHIFT PAUSED</h2>
+      <div class="menu-options" style="max-width: 100%; margin-top: 16px;">
+        <button class="btn btn-primary" id="btn-resume">RESUME SHIFT</button>
+        <button class="btn" id="btn-quit">ABORT SHIFT</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- In-Game HUD -->
+  <div id="game-hud">
+    <div class="hud-top-left">
+      <div class="hud-time" id="hud-time">12:00 AM</div>
+      <div class="hud-power-bar-wrap">
+        <div class="hud-power-fill" id="hud-power-fill"></div>
+      </div>
+      <div class="hud-power-label" id="hud-power-label">GENERATOR POWER: 100%</div>
+      <div class="hud-status-pills">
+        <span class="status-pill active" id="pill-flashlight">[F] FLASHLIGHT: ON</span>
+        <span class="status-pill" id="pill-door">BLAST DOOR: OPEN</span>
+      </div>
+    </div>
+    <div class="hud-top-right">
+      <div class="objective-title">CURRENT OBJECTIVE</div>
+      <div class="objective-text" id="hud-objective">Inspect the Security Terminal and monitor Sector 4 cameras.</div>
+    </div>
+    <div class="crosshair" id="crosshair"></div>
+    <div class="interaction-prompt" id="interaction-prompt">PRESS [E] TO INTERACT</div>
+  </div>
+
+  <!-- CCTV Camera Overlay -->
+  <div id="cctv-overlay">
+    <div class="cctv-header">
+      <div class="cctv-title" id="cctv-cam-title">CAM 01 // SECURITY HALLWAY</div>
+      <div class="cctv-rec"><span class="rec-dot"></span> REC // FEED LIVE</div>
+    </div>
+    <div class="cctv-viewport">
+      <canvas id="cctv-canvas" width="800" height="450"></canvas>
+    </div>
+    <div class="cctv-controls">
+      <button class="cam-btn active" data-cam="0">CAM 01: HALL</button>
+      <button class="cam-btn" data-cam="1">CAM 02: SERVER</button>
+      <button class="cam-btn" data-cam="2">CAM 03: BIO-LABS</button>
+      <button class="cam-btn" data-cam="3">CAM 04: CORE</button>
+      <button class="cam-btn" id="btn-exit-cctv" style="border-color: rgba(239, 68, 68, 0.4); color: var(--accent-red);">CLOSE MONITOR</button>
+    </div>
+  </div>
+
+  <!-- Computer Terminal Overlay -->
+  <div id="terminal-overlay">
+    <div class="terminal-box">
+      <div class="terminal-header">
+        <span>AUTOPIXEL OS // SECURE TERMINAL v4.2</span>
+        <span>USER: NIGHT_GUARD</span>
+      </div>
+      <div class="terminal-content" id="terminal-log-content">
+        INITIALIZING SECURE LINK...<br>
+        LOADING RESEARCH ARCHIVES...<br><br>
+        [LOG ENTRY #409 - DR. ARIS THORNE]<br>
+        "Subject 7 exhibits anomalous spatial displacement during subsystem power fluctuations. It avoids direct high-lumen beams, but prolonged exposure destabilizes nearby fluorescent ballasts. If it enters the main corridor, engage the hydraulic Blast Door switch immediately."<br><br>
+        [INCIDENT REPORT #112]<br>
+        "Previous night guard reported heavy metallic footsteps pacing outside the observation glass at 02:00 AM. Do not leave the security perimeter unguarded."<br><br>
+        [SYSTEM STATUS]<br>
+        AUXILIARY GENERATOR: ONLINE<br>
+        HYDRAULIC BLAST DOOR: OPERATIONAL
+      </div>
+      <div class="terminal-footer">
+        <span style="font-size: 0.75rem; color: var(--text-secondary);">Press [E] or [ESC] to disconnect</span>
+        <button class="btn" id="btn-exit-terminal" style="padding: 8px 16px; font-size: 0.75rem;">DISCONNECT</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- End / Victory Screen -->
+  <div id="end-screen">
+    <h1 id="end-title">SHIFT COMPLETED</h1>
+    <p id="end-desc">You survived the night shift at Sector 4.</p>
+    <button class="btn btn-primary" id="btn-restart" style="width: 240px;">RETURN TO MENU</button>
+  </div>
+
+  <script>
+    const State = {
+      LOADING: 'loading',
+      MENU: 'menu',
+      PLAYING: 'playing',
+      CCTV: 'cctv',
+      TERMINAL: 'terminal',
+      PAUSED: 'paused',
+      GAMEOVER: 'gameover',
+      VICTORY: 'victory'
+    };
+
+    let currentState = State.LOADING;
+    let settings = { sensitivity: 1.5, volume: 0.75 };
+    let gameStats = {
+      hour: 0,
+      timeElapsed: 0,
+      power: 100,
+      activeCam: 0,
+      flashlightOn: true,
+      doorClosed: false,
+      entityStage: 0, // 0: Server/Core, 1: Labs, 2: Hallway Far, 3: Corridor Door
+      entityAttackTimer: 0
+    };
+
+    /* -----------------------------------------------------------
+       PROCEDURAL SPATIAL & HORROR SOUND ENGINE (WEB AUDIO API)
+    ----------------------------------------------------------- */
+    let audioCtx = null;
+    let droneGain = null;
+
+    function initAudio() {
+      if (audioCtx) return;
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        startAmbientDrone();
+      } catch (e) {}
+    }
+
+    function startAmbientDrone() {
+      if (!audioCtx) return;
+      // Deep sub-bass facility hum + eerie detuned harmonic
+      const osc1 = audioCtx.createOscillator();
+      const osc2 = audioCtx.createOscillator();
+      const filter = audioCtx.createBiquadFilter();
+      droneGain = audioCtx.createGain();
+
+      osc1.type = 'sawtooth';
+      osc1.frequency.value = 46; // Low electrical hum
+      osc2.type = 'triangle';
+      osc2.frequency.value = 69.3; // Dissonant fifth
+
+      filter.type = 'lowpass';
+      filter.frequency.value = 130;
+
+      droneGain.gain.value = settings.volume * 0.14;
+
+      osc1.connect(filter);
+      osc2.connect(filter);
+      filter.connect(droneGain);
+      droneGain.connect(audioCtx.destination);
+
+      osc1.start();
+      osc2.start();
+    }
+
+    function playSound(type) {
+      if (!audioCtx) return;
+      try {
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'click') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(720, now);
+          osc.frequency.exponentialRampToValueAtTime(240, now + 0.05);
+          gain.gain.setValueAtTime(settings.volume * 0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+          osc.start(now);
+          osc.stop(now + 0.05);
+        } else if (type === 'door') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(95, now);
+          osc.frequency.linearRampToValueAtTime(38, now + 0.45);
+          gain.gain.setValueAtTime(settings.volume * 0.45, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+          osc.start(now);
+          osc.stop(now + 0.45);
+        } else if (type === 'footstep') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(65 + Math.random() * 15, now);
+          osc.frequency.exponentialRampToValueAtTime(28, now + 0.18);
+          gain.gain.setValueAtTime(settings.volume * 0.35, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+          osc.start(now);
+          osc.stop(now + 0.18);
+        } else if (type === 'bang') {
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(110, now);
+          osc.frequency.exponentialRampToValueAtTime(24, now + 0.35);
+          gain.gain.setValueAtTime(settings.volume * 0.65, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          osc.start(now);
+          osc.stop(now + 0.35);
+        } else if (type === 'jumpscare') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(140, now);
+          osc.frequency.linearRampToValueAtTime(740, now + 0.55);
+          gain.gain.setValueAtTime(settings.volume * 0.85, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+          osc.start(now);
+          osc.stop(now + 0.65);
+        }
+      } catch (e) {}
+    }
+
+    /* -----------------------------------------------------------
+       PROCEDURAL PBR TEXTURE GENERATOR (CONCRETE, GRIME, TILE)
+    ----------------------------------------------------------- */
+    function createProceduralTexture(type) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+
+      if (type === 'concrete') {
+        ctx.fillStyle = '#181c24';
+        ctx.fillRect(0, 0, 512, 512);
+        // Noise & grime speckles
+        for (let i = 0; i < 9000; i++) {
+          const x = Math.random() * 512;
+          const y = Math.random() * 512;
+          const shade = Math.random() > 0.5 ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.22)';
+          ctx.fillStyle = shade;
+          ctx.fillRect(x, y, 2, 2);
+        }
+        // Industrial wall panel seams & hazard stripe
+        ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(2, 2, 508, 508);
+        ctx.beginPath();
+        ctx.moveTo(0, 256);
+        ctx.lineTo(512, 256);
+        ctx.stroke();
+
+        // Subtle worn yellow/black hazard trim near bottom
+        ctx.fillStyle = 'rgba(217, 119, 6, 0.25)';
+        ctx.fillRect(0, 465, 512, 16);
+      } else if (type === 'floor') {
+        ctx.fillStyle = '#0d1017';
+        ctx.fillRect(0, 0, 512, 512);
+        // Tiles
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+        ctx.lineWidth = 2;
+        for (let x = 0; x <= 512; x += 64) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 512); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(0, x); ctx.lineTo(512, x); ctx.stroke();
+        }
+        // Scuffs & moisture stains
+        for (let i = 0; i < 40; i++) {
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+          ctx.beginPath();
+          ctx.arc(Math.random() * 512, Math.random() * 512, 12 + Math.random() * 28, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else if (type === 'ceiling') {
+        ctx.fillStyle = '#090b10';
+        ctx.fillRect(0, 0, 512, 512);
+        ctx.strokeStyle = '#141824';
+        ctx.lineWidth = 6;
+        for (let y = 0; y < 512; y += 64) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(512, y); ctx.stroke();
+        }
+      }
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      return tex;
+    }
+
+    /* -----------------------------------------------------------
+       LOADING SCREEN PROGRESSION
+    ----------------------------------------------------------- */
+    const loadingBar = document.getElementById('loading-bar-fill');
+    const loadingScreen = document.getElementById('loading-screen');
+    let loadProgress = 0;
+    const loadInterval = setInterval(() => {
+      loadProgress += 25;
+      if (loadProgress >= 100) {
+        loadProgress = 100;
+        clearInterval(loadInterval);
+        setTimeout(() => {
+          loadingScreen.classList.add('hidden');
+          currentState = State.MENU;
+        }, 300);
+      }
+      loadingBar.style.width = loadProgress + '%';
+    }, 100);
+
+    /* -----------------------------------------------------------
+       THREE.JS DETAILED FACILITY & ATMOSPHERIC LIGHTING
+    ----------------------------------------------------------- */
+    let scene, camera, renderer;
+    let cctvScene, cctvCamera, cctvRenderer;
+    let player = { x: 0, y: 1.65, z: -0.5, rotX: 0, rotY: 0, speed: 3.4, bobTimer: 0 };
+    let keys = { w: false, a: false, s: false, d: false };
+    let interactables = [];
+    let targetedObject = null;
+
+    let officeLight, corridorRedLight, flashlight;
+    let blastDoorMesh, doorSwitchIndicator;
+    let entityMainMesh, entityCCTVMesh;
+    let dustParticles;
+
+    function initThree() {
+      if (!window.THREE_LOADED && typeof THREE === 'undefined') return;
+      try {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x030407);
+        scene.fog = new THREE.FogExp2(0x030407, 0.11);
+
+        camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, 0.1, 80);
+        camera.position.set(player.x, player.y, player.z);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.05;
+        document.body.appendChild(renderer.domElement);
+
+        // CCTV Renderer & Scene
+        cctvScene = new THREE.Scene();
+        cctvScene.background = new THREE.Color(0x020406);
+        cctvScene.fog = new THREE.FogExp2(0x020406, 0.065);
+        cctvCamera = new THREE.PerspectiveCamera(72, 800 / 450, 0.1, 80);
+        cctvRenderer = new THREE.WebGLRenderer({ canvas: document.getElementById('cctv-canvas'), antialias: true });
+        cctvRenderer.setSize(800, 450);
+
+        buildDetailedOfficeAndCorridor();
+        buildDetailedCCTVRooms();
+        setupAtmosphericLighting();
+      } catch (e) {}
+    }
+
+    function buildDetailedOfficeAndCorridor() {
+      const concreteTex = createProceduralTexture('concrete');
+      const floorTex = createProceduralTexture('floor');
+      floorTex.repeat.set(3, 3);
+      const ceilingTex = createProceduralTexture('ceiling');
+      ceilingTex.repeat.set(2, 2);
+
+      const wallMat = new THREE.MeshStandardMaterial({ map: concreteTex, roughness: 0.85, metalness: 0.15 });
+      const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.45, metalness: 0.35 });
+      const ceilingMat = new THREE.MeshStandardMaterial({ map: ceilingTex, roughness: 0.9 });
+      const darkMetalMat = new THREE.MeshStandardMaterial({ color: 0x161a24, roughness: 0.4, metalness: 0.7 });
+      const rustPipeMat = new THREE.MeshStandardMaterial({ color: 0x2a1d19, roughness: 0.7, metalness: 0.5 });
+
+      // 1. Security Office Room (x: -4 to 4, z: -4 to 3.5)
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(8, 7.5), floorMat);
+      floor.rotation.x = -Math.PI / 2;
+      floor.receiveShadow = true;
+      scene.add(floor);
+
+      const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(8, 7.5), ceilingMat);
+      ceiling.rotation.x = Math.PI / 2;
+      ceiling.position.y = 3.8;
+      scene.add(ceiling);
+
+      // Front, Left, Right Walls
+      const frontWall = new THREE.Mesh(new THREE.BoxGeometry(8, 3.8, 0.3), wallMat);
+      frontWall.position.set(0, 1.9, -3.75);
+      frontWall.receiveShadow = true;
+      scene.add(frontWall);
+
+      const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3.8, 7.5), wallMat);
+      leftWall.position.set(-4, 1.9, 0);
+      leftWall.receiveShadow = true;
+      scene.add(leftWall);
+
+      const rightWall = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3.8, 7.5), wallMat);
+      rightWall.position.set(4, 1.9, 0);
+      rightWall.receiveShadow = true;
+      scene.add(rightWall);
+
+      // Back Partition Wall with Doorway Opening (z = 3.5)
+      const backLeft = new THREE.Mesh(new THREE.BoxGeometry(2.6, 3.8, 0.3), wallMat);
+      backLeft.position.set(-2.7, 1.9, 3.5);
+      scene.add(backLeft);
+
+      const backRight = new THREE.Mesh(new THREE.BoxGeometry(2.6, 3.8, 0.3), wallMat);
+      backRight.position.set(2.7, 1.9, 3.5);
+      scene.add(backRight);
+
+      const doorHeader = new THREE.Mesh(new THREE.BoxGeometry(2.8, 1.1, 0.35), wallMat);
+      doorHeader.position.set(0, 3.25, 3.5);
+      scene.add(doorHeader);
+
+      // Reinforced Hydraulic Blast Door (slides down when closed)
+      const doorMat = new THREE.MeshStandardMaterial({ color: 0x252b38, roughness: 0.35, metalness: 0.8 });
+      blastDoorMesh = new THREE.Mesh(new THREE.BoxGeometry(2.75, 2.7, 0.18), doorMat);
+      blastDoorMesh.position.set(0, 3.95, 3.5); // Open position tucked up
+      blastDoorMesh.castShadow = true;
+      scene.add(blastDoorMesh);
+
+      // Wall-Mounted Blast Door Switch (Next to doorway)
+      const switchBox = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.55, 0.15), darkMetalMat);
+      switchBox.position.set(1.75, 1.45, 3.3);
+      switchBox.userData = { type: 'doorSwitch', name: 'Hydraulic Blast Door Switch' };
+      scene.add(switchBox);
+      interactables.push(switchBox);
+
+      doorSwitchIndicator = new THREE.Mesh(
+        new THREE.BoxGeometry(0.18, 0.18, 0.05),
+        new THREE.MeshStandardMaterial({ color: 0x10b981, emissive: 0x10b981, emissiveIntensity: 0.9 })
+      );
+      doorSwitchIndicator.position.set(1.75, 1.55, 3.21);
+      scene.add(doorSwitchIndicator);
+
+      // Overhead Exposed Industrial Pipes & Beams
+      for (let i = -3; i <= 3; i += 2) {
+        const beam = new THREE.Mesh(new THREE.BoxGeometry(8, 0.22, 0.25), darkMetalMat);
+        beam.position.set(0, 3.68, i);
+        scene.add(beam);
+      }
+      const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 7.5, 10), rustPipeMat);
+      pipe.rotation.x = Math.PI / 2;
+      pipe.position.set(-3.6, 3.3, 0);
+      scene.add(pipe);
+
+      // Detailed Security Desk & Props
+      const deskTop = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.12, 1.3), darkMetalMat);
+      deskTop.position.set(0, 0.85, -2.5);
+      deskTop.castShadow = true;
+      deskTop.receiveShadow = true;
+      scene.add(deskTop);
+
+      // Desk Legs
+      [-1.5, 1.5].forEach(lx => {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.85, 1.1), darkMetalMat);
+        leg.position.set(lx, 0.425, -2.5);
+        scene.add(leg);
+      });
+
+      // Terminal Monitor (Center)
+      const monitorStand = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.25, 0.15), darkMetalMat);
+      monitorStand.position.set(0.3, 0.98, -2.6);
+      scene.add(monitorStand);
+
+      const monitorBody = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.65, 0.18), darkMetalMat);
+      monitorBody.position.set(0.3, 1.35, -2.55);
+      monitorBody.userData = { type: 'terminal', name: 'Research Archive Terminal' };
+      scene.add(monitorBody);
+      interactables.push(monitorBody);
+
+      const terminalScreen = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.84, 0.54),
+        new THREE.MeshStandardMaterial({ color: 0x00e5ff, emissive: 0x00e5ff, emissiveIntensity: 0.45 })
+      );
+      terminalScreen.position.set(0.3, 1.35, -2.45);
+      scene.add(terminalScreen);
+
+      // Multi-Screen CCTV Monitor Bank (Left of Desk)
+      const cctvBank = new THREE.Mesh(new THREE.BoxGeometry(1.45, 0.72, 0.22), darkMetalMat);
+      cctvBank.position.set(-1.0, 1.35, -2.42);
+      cctvBank.rotation.y = 0.28;
+      cctvBank.userData = { type: 'cctv', name: 'CCTV Surveillance Console' };
+      scene.add(cctvBank);
+      interactables.push(cctvBank);
+
+      const cctvScreenGlow = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.32, 0.6),
+        new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.35 })
+      );
+      cctvScreenGlow.position.set(-0.97, 1.35, -2.30);
+      cctvScreenGlow.rotation.y = 0.28;
+      scene.add(cctvScreenGlow);
+
+      // Desk Props: Coffee Mug, Stack of Incident Folders, Desk Lamp
+      const mug = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.06, 0.055, 0.14, 12),
+        new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.3 })
+      );
+      mug.position.set(1.15, 0.98, -2.25);
+      scene.add(mug);
+
+      const folder = new THREE.Mesh(
+        new THREE.BoxGeometry(0.32, 0.03, 0.24),
+        new THREE.MeshStandardMaterial({ color: 0xd4b483, roughness: 0.9 })
+      );
+      folder.position.set(-0.35, 0.925, -2.15);
+      folder.rotation.y = -0.2;
+      scene.add(folder);
+
+      // Server Racks & Filing Cabinets along Side Walls
+      for (let z = -2.2; z <= 1.2; z += 1.6) {
+        const rack = new THREE.Mesh(new THREE.BoxGeometry(0.75, 2.5, 1.1), darkMetalMat);
+        rack.position.set(-3.45, 1.25, z);
+        rack.castShadow = true;
+        scene.add(rack);
+
+        // Blinking server LEDs
+        const led = new THREE.Mesh(
+          new THREE.BoxGeometry(0.04, 0.8, 0.04),
+          new THREE.MeshStandardMaterial({ color: 0x00e5ff, emissive: 0x00e5ff, emissiveIntensity: 0.8 })
+        );
+        led.position.set(-3.06, 1.5, z);
+        scene.add(led);
+      }
+
+      // 2. Dark Exterior Corridor (z: 3.5 to 18)
+      const hallFloor = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 14.5), floorMat);
+      hallFloor.rotation.x = -Math.PI / 2;
+      hallFloor.position.set(0, 0, 10.75);
+      scene.add(hallFloor);
+
+      const hallWallL = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3.8, 14.5), wallMat);
+      hallWallL.position.set(-1.6, 1.9, 10.75);
+      scene.add(hallWallL);
+
+      const hallWallR = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3.8, 14.5), wallMat);
+      hallWallR.position.set(1.6, 1.9, 10.75);
+      scene.add(hallWallR);
+
+      const hallEnd = new THREE.Mesh(new THREE.BoxGeometry(3.4, 3.8, 0.3), wallMat);
+      hallEnd.position.set(0, 1.9, 18);
+      scene.add(hallEnd);
+
+      // 3. Detailed Subject 7 Stalker Entity (Articulated Shadow Figure + Glowing Eyes)
+      entityMainMesh = createSubject7Model();
+      entityMainMesh.position.set(0, 0, 16.5);
+      scene.add(entityMainMesh);
+
+      // 4. Floating Dust Motes in Air
+      const dustGeo = new THREE.BufferGeometry();
+      const dustCount = 260;
+      const positions = new Float32Array(dustCount * 3);
+      for (let i = 0; i < dustCount * 3; i += 3) {
+        positions[i] = (Math.random() - 0.5) * 7.5;
+        positions[i + 1] = Math.random() * 3.6;
+        positions[i + 2] = (Math.random() - 0.5) * 7.5;
+      }
+      dustGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const dustMat = new THREE.PointsMaterial({
+        color: 0x94a3b8,
+        size: 0.025,
+        transparent: true,
+        opacity: 0.45
+      });
+      dustParticles = new THREE.Points(dustGeo, dustMat);
+      scene.add(dustParticles);
+    }
+
+    function createSubject7Model() {
+      const group = new THREE.Group();
+      const voidMat = new THREE.MeshStandardMaterial({
+        color: 0x020203,
+        roughness: 0.95,
+        metalness: 0.1
+      });
+      const eyeMat = new THREE.MeshStandardMaterial({
+        color: 0xff2a2a,
+        emissive: 0xef4444,
+        emissiveIntensity: 2.2
+      });
+
+      // Elongated Torso
+      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.16, 1.45, 10), voidMat);
+      torso.position.y = 1.65;
+      group.add(torso);
+
+      // Gaunt Head
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 12), voidMat);
+      head.scale.set(0.85, 1.25, 0.9);
+      head.position.y = 2.55;
+      group.add(head);
+
+      // Piercing Crimson Eyes
+      const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.028, 8, 8), eyeMat);
+      eyeL.position.set(-0.07, 2.57, -0.17);
+      group.add(eyeL);
+
+      const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.028, 8, 8), eyeMat);
+      eyeR.position.set(0.07, 2.57, -0.17);
+      group.add(eyeR);
+
+      // Long Thin Limbs
+      [-0.28, 0.28].forEach(ax => {
+        const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.03, 1.45, 8), voidMat);
+        arm.position.set(ax, 1.55, 0);
+        arm.rotation.z = ax > 0 ? -0.08 : 0.08;
+        group.add(arm);
+      });
+
+      [-0.12, 0.12].forEach(lx => {
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.04, 1.1, 8), voidMat);
+        leg.position.set(lx, 0.55, 0);
+        group.add(leg);
+      });
+
+      return group;
+    }
+
+    function buildDetailedCCTVRooms() {
+      const wallMat = new THREE.MeshStandardMaterial({ color: 0x161b26, roughness: 0.75 });
+      const floorMat = new THREE.MeshStandardMaterial({ color: 0x0b0e14, roughness: 0.5 });
+
+      // CAM 0: Hallway (0, 0, 0)
+      const cam0Group = new THREE.Group();
+      const f0 = new THREE.Mesh(new THREE.PlaneGeometry(6, 16), floorMat);
+      f0.rotation.x = -Math.PI / 2;
+      cam0Group.add(f0);
+      const w0L = new THREE.Mesh(new THREE.BoxGeometry(0.3, 4, 16), wallMat);
+      w0L.position.set(-2.5, 2, 0);
+      cam0Group.add(w0L);
+      const w0R = new THREE.Mesh(new THREE.BoxGeometry(0.3, 4, 16), wallMat);
+      w0R.position.set(2.5, 2, 0);
+      cam0Group.add(w0R);
+      const l0 = new THREE.PointLight(0xef4444, 1.5, 18);
+      l0.position.set(0, 3.2, 0);
+      cam0Group.add(l0);
+      cctvScene.add(cam0Group);
+
+      // CAM 1: Server Room (30, 0, 0)
+      const cam1Group = new THREE.Group();
+      cam1Group.position.set(30, 0, 0);
+      const f1 = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), floorMat);
+      f1.rotation.x = -Math.PI / 2;
+      cam1Group.add(f1);
+      for (let x = -3; x <= 3; x += 2) {
+        const rack = new THREE.Mesh(new THREE.BoxGeometry(0.9, 3.2, 1.4), wallMat);
+        rack.position.set(x, 1.6, -2);
+        cam1Group.add(rack);
+      }
+      const l1 = new THREE.PointLight(0x00e5ff, 1.6, 16);
+      l1.position.set(0, 3.2, 1);
+      cam1Group.add(l1);
+      cctvScene.add(cam1Group);
+
+      // CAM 2: Bio-Labs (-30, 0, 0)
+      const cam2Group = new THREE.Group();
+      cam2Group.position.set(-30, 0, 0);
+      const f2 = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), floorMat);
+      f2.rotation.x = -Math.PI / 2;
+      cam2Group.add(f2);
+      const tank = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.1, 1.1, 3.4, 16),
+        new THREE.MeshStandardMaterial({ color: 0x10b981, emissive: 0x059669, emissiveIntensity: 0.4, transparent: true, opacity: 0.55 })
+      );
+      tank.position.set(0, 1.7, -2);
+      cam2Group.add(tank);
+      const l2 = new THREE.PointLight(0x10b981, 1.6, 16);
+      l2.position.set(0, 3.2, 1);
+      cam2Group.add(l2);
+      cctvScene.add(cam2Group);
+
+      // CAM 3: Reactor Core (0, 0, -30)
+      const cam3Group = new THREE.Group();
+      cam3Group.position.set(0, 0, -30);
+      const f3 = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), floorMat);
+      f3.rotation.x = -Math.PI / 2;
+      cam3Group.add(f3);
+      const core = new THREE.Mesh(
+        new THREE.OctahedronGeometry(1.5, 1),
+        new THREE.MeshStandardMaterial({ color: 0xf59e0b, emissive: 0xd97706, emissiveIntensity: 0.9 })
+      );
+      core.position.set(0, 2.2, -3);
+      cam3Group.add(core);
+      const l3 = new THREE.PointLight(0xf59e0b, 2.0, 18);
+      l3.position.set(0, 3.5, 0);
+      cam3Group.add(l3);
+      cctvScene.add(cam3Group);
+
+      // CCTV Entity Prop (moves across cameras based on Subject 7's stage)
+      entityCCTVMesh = createSubject7Model();
+      entityCCTVMesh.position.set(30, 0, -3.5);
+      cctvScene.add(entityCCTVMesh);
+
+      cctvScene.add(new THREE.AmbientLight(0x1e293b, 0.7));
+      updateCCTVCameraPos(0);
+    }
+
+    function updateCCTVCameraPos(camIdx) {
+      const positions = [
+        { x: 0, y: 2.6, z: 6.5, rx: -0.25, ry: 0 },
+        { x: 30, y: 2.6, z: 4.5, rx: -0.28, ry: 0 },
+        { x: -30, y: 2.6, z: 4.5, rx: -0.28, ry: 0 },
+        { x: 0, y: 2.8, z: -23.5, rx: -0.25, ry: 0 }
+      ];
+      if (cctvCamera) {
+        const p = positions[camIdx];
+        cctvCamera.position.set(p.x, p.y, p.z);
+        cctvCamera.rotation.set(p.rx, p.ry, 0);
+      }
+    }
+
+    function setupAtmosphericLighting() {
+      // Very dim cold ambient shadow fill
+      scene.add(new THREE.AmbientLight(0x090d16, 0.28));
+
+      // Flickering Overhead Office Fluorescent Tube Light
+      officeLight = new THREE.PointLight(0xcbe8ff, 1.35, 9.5, 1.6);
+      officeLight.position.set(0, 3.55, -1.2);
+      officeLight.castShadow = true;
+      officeLight.shadow.mapSize.width = 1024;
+      officeLight.shadow.mapSize.height = 1024;
+      scene.add(officeLight);
+
+      // Eerie Red Emergency Light down the outer corridor
+      corridorRedLight = new THREE.PointLight(0xef4444, 1.4, 14, 1.5);
+      corridorRedLight.position.set(0, 3.2, 11.5);
+      scene.add(corridorRedLight);
+
+      // Player Handheld Tactical Flashlight (SpotLight attached to camera)
+      flashlight = new THREE.SpotLight(0xfff8e7, 2.4, 18, Math.PI / 5.5, 0.45, 1.2);
+      flashlight.position.set(0, 0, 0);
+      flashlight.target.position.set(0, 0, -1);
+      camera.add(flashlight);
+      camera.add(flashlight.target);
+      scene.add(camera);
+    }
+
+    /* -----------------------------------------------------------
+       CONTROLS & EVENT LISTENERS
+    ----------------------------------------------------------- */
+    window.addEventListener('DOMContentLoaded', () => {
+      initThree();
+
+      window.addEventListener('resize', () => {
+        if (!camera || !renderer) return;
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (currentState === State.PLAYING) {
+          if (e.key === 'w' || e.key === 'W') keys.w = true;
+          if (e.key === 's' || e.key === 'S') keys.s = true;
+          if (e.key === 'a' || e.key === 'A') keys.a = true;
+          if (e.key === 'd' || e.key === 'D') keys.d = true;
+          if (e.key === 'e' || e.key === 'E') handleInteraction();
+          if (e.key === 'f' || e.key === 'F') toggleFlashlight();
+          if (e.key === 'Escape') openPauseMenu();
+        } else if (currentState === State.CCTV && (e.key === 'Escape' || e.key === 'e' || e.key === 'E')) {
+          closeCCTV();
+        } else if (currentState === State.TERMINAL && (e.key === 'Escape' || e.key === 'e' || e.key === 'E')) {
+          closeTerminal();
+        }
+      });
+
+      window.addEventListener('keyup', (e) => {
+        if (e.key === 'w' || e.key === 'W') keys.w = false;
+        if (e.key === 's' || e.key === 'S') keys.s = false;
+        if (e.key === 'a' || e.key === 'A') keys.a = false;
+        if (e.key === 'd' || e.key === 'D') keys.d = false;
+      });
+
+      if (renderer) {
+        renderer.domElement.addEventListener('click', () => {
+          if (currentState === State.PLAYING) {
+            renderer.domElement.requestPointerLock();
+          }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+          if (document.pointerLockElement === renderer.domElement && currentState === State.PLAYING) {
+            const sens = settings.sensitivity * 0.002;
+            player.rotY -= e.movementX * sens;
+            player.rotX -= e.movementY * sens;
+            player.rotX = Math.max(-Math.PI / 2.4, Math.min(Math.PI / 2.4, player.rotX));
+          }
+        });
+      }
+
+      document.getElementById('btn-start').addEventListener('click', () => {
+        initAudio();
+        playSound('click');
+        startGame();
+      });
+
+      document.getElementById('btn-settings').addEventListener('click', () => {
+        playSound('click');
+        document.getElementById('settings-modal').classList.add('active');
+      });
+
+      document.getElementById('btn-instructions').addEventListener('click', () => {
+        playSound('click');
+        document.getElementById('instructions-modal').classList.add('active');
+      });
+
+      document.getElementById('btn-close-settings').addEventListener('click', () => {
+        playSound('click');
+        settings.sensitivity = parseFloat(document.getElementById('sensitivity-range').value);
+        settings.volume = parseFloat(document.getElementById('volume-range').value);
+        if (droneGain) droneGain.gain.value = settings.volume * 0.14;
+        document.getElementById('settings-modal').classList.remove('active');
+      });
+
+      document.getElementById('btn-close-instructions').addEventListener('click', () => {
+        playSound('click');
+        document.getElementById('instructions-modal').classList.remove('active');
+      });
+
+      document.getElementById('btn-resume').addEventListener('click', () => {
+        playSound('click');
+        closePauseMenu();
+      });
+
+      document.getElementById('btn-quit').addEventListener('click', () => {
+        playSound('click');
+        location.reload();
+      });
+
+      document.getElementById('btn-restart').addEventListener('click', () => {
+        location.reload();
+      });
+
+      document.getElementById('btn-exit-cctv').addEventListener('click', () => {
+        playSound('click');
+        closeCCTV();
+      });
+
+      document.getElementById('btn-exit-terminal').addEventListener('click', () => {
+        playSound('click');
+        closeTerminal();
+      });
+
+      document.querySelectorAll('.cam-btn[data-cam]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          playSound('click');
+          document.querySelectorAll('.cam-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          const camIdx = parseInt(btn.getAttribute('data-cam'));
+          gameStats.activeCam = camIdx;
+          updateCCTVCameraPos(camIdx);
+          const titles = ["CAM 01 // SECURITY HALLWAY", "CAM 02 // SECTOR 2 SERVER", "CAM 03 // BIO-LABS", "CAM 04 // REACTOR CORE"];
+          document.getElementById('cctv-cam-title').textContent = titles[camIdx];
+        });
+      });
+    });
+
+    function toggleFlashlight() {
+      gameStats.flashlightOn = !gameStats.flashlightOn;
+      playSound('click');
+      if (flashlight) flashlight.visible = gameStats.flashlightOn;
+      const pill = document.getElementById('pill-flashlight');
+      pill.textContent = `[F] FLASHLIGHT: ${gameStats.flashlightOn ? 'ON' : 'OFF'}`;
+      pill.classList.toggle('active', gameStats.flashlightOn);
+    }
+
+    function toggleBlastDoor() {
+      gameStats.doorClosed = !gameStats.doorClosed;
+      playSound('door');
+      const pill = document.getElementById('pill-door');
+      pill.textContent = `BLAST DOOR: ${gameStats.doorClosed ? 'SEALED' : 'OPEN'}`;
+      pill.classList.toggle('alert', gameStats.doorClosed);
+
+      if (doorSwitchIndicator) {
+        const hex = gameStats.doorClosed ? 0xef4444 : 0x10b981;
+        doorSwitchIndicator.material.color.setHex(hex);
+        doorSwitchIndicator.material.emissive.setHex(hex);
+      }
+    }
+
+    function startGame() {
+      document.getElementById('main-menu').classList.add('hidden');
+      document.getElementById('game-hud').classList.add('active');
+      currentState = State.PLAYING;
+      if (renderer) renderer.domElement.requestPointerLock();
+      lastTime = performance.now();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function openPauseMenu() {
+      currentState = State.PAUSED;
+      try { document.exitPointerLock(); } catch (e) {}
+      document.getElementById('pause-modal').classList.add('active');
+    }
+
+    function closePauseMenu() {
+      document.getElementById('pause-modal').classList.remove('active');
+      currentState = State.PLAYING;
+      if (renderer) renderer.domElement.requestPointerLock();
+    }
+
+    const raycaster = new THREE.Raycaster();
+    const mouseVector = new THREE.Vector2(0, 0);
+
+    function checkInteractions() {
+      if (currentState !== State.PLAYING || !camera) return;
+      raycaster.setFromCamera(mouseVector, camera);
+      const intersects = raycaster.intersectObjects(interactables);
+      const prompt = document.getElementById('interaction-prompt');
+      const crosshair = document.getElementById('crosshair');
+
+      if (intersects.length > 0 && intersects[0].distance < 3.2) {
+        targetedObject = intersects[0].object;
+        crosshair.classList.add('interactive');
+        prompt.textContent = `PRESS [E] TO USE ${targetedObject.userData.name.toUpperCase()}`;
+        prompt.classList.add('visible');
+      } else {
+        targetedObject = null;
+        crosshair.classList.remove('interactive');
+        prompt.classList.remove('visible');
+      }
+    }
+
+    function handleInteraction() {
+      if (!targetedObject) return;
+      if (targetedObject.userData.type === 'cctv') {
+        playSound('click');
+        openCCTV();
+      } else if (targetedObject.userData.type === 'terminal') {
+        playSound('click');
+        openTerminal();
+      } else if (targetedObject.userData.type === 'doorSwitch') {
+        toggleBlastDoor();
+      }
+    }
+
+    function openCCTV() {
+      currentState = State.CCTV;
+      try { document.exitPointerLock(); } catch (e) {}
+      document.getElementById('cctv-overlay').classList.add('active');
+      document.getElementById('game-hud').classList.remove('active');
+    }
+
+    function closeCCTV() {
+      document.getElementById('cctv-overlay').classList.remove('active');
+      document.getElementById('game-hud').classList.add('active');
+      currentState = State.PLAYING;
+      if (renderer) renderer.domElement.requestPointerLock();
+    }
+
+    function openTerminal() {
+      currentState = State.TERMINAL;
+      try { document.exitPointerLock(); } catch (e) {}
+      document.getElementById('terminal-overlay').classList.add('active');
+      document.getElementById('game-hud').classList.remove('active');
+    }
+
+    function closeTerminal() {
+      document.getElementById('terminal-overlay').classList.remove('active');
+      document.getElementById('game-hud').classList.add('active');
+      currentState = State.PLAYING;
+      if (renderer) renderer.domElement.requestPointerLock();
+    }
+
+    /* -----------------------------------------------------------
+       MAIN GAME LOOP, LIGHTING FLICKER & ENTITY STALKING AI
+    ----------------------------------------------------------- */
+    let lastTime = 0;
+    let stepAudioCooldown = 0;
+
+    function gameLoop(timestamp) {
+      if (currentState === State.PAUSED || currentState === State.GAMEOVER || currentState === State.VICTORY) return;
+      const dt = Math.min((timestamp - lastTime) / 1000, 0.25);
+      lastTime = timestamp;
+
+      if (currentState === State.PLAYING) {
+        updatePlayer(dt);
+        updateEnvironmentAndLighting(dt);
+        updateGameProgression(dt);
+        checkInteractions();
+        if (renderer && scene && camera) renderer.render(scene, camera);
+      } else if (currentState === State.CCTV) {
+        updateEnvironmentAndLighting(dt);
+        updateGameProgression(dt);
+        if (cctvRenderer && cctvScene && cctvCamera) {
+          cctvRenderer.render(cctvScene, cctvCamera);
+        }
+      }
+      requestAnimationFrame(gameLoop);
+    }
+
+    function updatePlayer(dt) {
+      const moveSpeed = player.speed * dt;
+      const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.rotY);
+      const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.rotY);
+
+      let dx = 0, dz = 0;
+      if (keys.w) { dx += forward.x * moveSpeed; dz += forward.z * moveSpeed; }
+      if (keys.s) { dx -= forward.x * moveSpeed; dz -= forward.z * moveSpeed; }
+      if (keys.a) { dx -= right.x * moveSpeed; dz -= right.z * moveSpeed; }
+      if (keys.d) { dx += right.x * moveSpeed; dz += right.z * moveSpeed; }
+
+      const isMoving = Math.abs(dx) > 0.0001 || Math.abs(dz) > 0.0001;
+      player.x += dx;
+      player.z += dz;
+
+      // Room collision bounds (prevent walking through desk or sealed door)
+      player.x = Math.max(-3.1, Math.min(3.1, player.x));
+      const maxZ = gameStats.doorClosed ? 2.8 : 9.5;
+      player.z = Math.max(-1.6, Math.min(maxZ, player.z));
+
+      // Subtle head-bob when walking
+      if (isMoving) {
+        player.bobTimer += dt * 9.5;
+      } else {
+        player.bobTimer = 0;
+      }
+      const bobOffset = isMoving ? Math.sin(player.bobTimer) * 0.045 : 0;
+
+      camera.position.set(player.x, player.y + bobOffset, player.z);
+      camera.rotation.order = 'YXZ';
+      camera.rotation.y = player.rotY;
+      camera.rotation.x = player.rotX;
+    }
+
+    function updateEnvironmentAndLighting(dt) {
+      // Smooth hydraulic blast door animation
+      if (blastDoorMesh) {
+        const targetY = gameStats.doorClosed ? 1.35 : 3.95;
+        blastDoorMesh.position.y += (targetY - blastDoorMesh.position.y) * Math.min(1, dt * 8);
+      }
+
+      // Eerie fluorescent light flickering (intensifies as Subject 7 approaches)
+      if (officeLight) {
+        const flickerChance = 0.015 + gameStats.entityStage * 0.025;
+        if (Math.random() < flickerChance) {
+          officeLight.intensity = 0.15 + Math.random() * 0.45;
+        } else {
+          officeLight.intensity += (1.35 - officeLight.intensity) * 0.25;
+        }
+      }
+
+      // Dust particles slowly drifting
+      if (dustParticles) {
+        dustParticles.rotation.y += dt * 0.03;
+      }
+    }
+
+    function updateGameProgression(dt) {
+      gameStats.timeElapsed += dt;
+
+      // Clock progression (25 seconds per in-game hour -> 2.5 minutes full shift)
+      const newHour = Math.floor(gameStats.timeElapsed / 25);
+      if (newHour !== gameStats.hour && newHour <= 6) {
+        gameStats.hour = newHour;
+        const hours = ["12:00 AM", "01:00 AM", "02:00 AM", "03:00 AM", "04:00 AM", "05:00 AM", "06:00 AM"];
+        document.getElementById('hud-time').textContent = hours[gameStats.hour];
+        if (gameStats.hour === 6) {
+          triggerEndScreen("SHIFT COMPLETED", "var(--accent-blue)", "06:00 AM // Relief personnel have arrived. You survived the night shift at Sector 4.");
+          return;
+        }
+      }
+
+      // Strategic Power Consumption
+      let drainRate = 0.18; // Base facility drain
+      if (gameStats.flashlightOn) drainRate += 0.22;
+      if (gameStats.doorClosed) drainRate += 1.45; // Sealing hydraulic door drains power rapidly
+      if (currentState === State.CCTV) drainRate += 0.25;
+
+      gameStats.power = Math.max(0, gameStats.power - dt * drainRate);
+      document.getElementById('hud-power-fill').style.width = gameStats.power + '%';
+      document.getElementById('hud-power-label').textContent = `GENERATOR POWER: ${Math.floor(gameStats.power)}%`;
+
+      if (gameStats.power <= 0) {
+        if (gameStats.doorClosed) toggleBlastDoor(); // Door fails open on blackout
+        triggerEndScreen("POWER FAILURE", "var(--accent-red)", "BACKUP GENERATOR DEPLETED // Emergency blast doors failed open in total darkness.");
+        return;
+      }
+
+      // Subject 7 Stalking Cycle (repeats every 32 seconds)
+      const cycleTime = gameStats.timeElapsed % 32;
+      if (cycleTime < 8) {
+        gameStats.entityStage = 0; // Server Room (CAM 02)
+        if (entityCCTVMesh) entityCCTVMesh.position.set(30, 0, -3.5);
+        if (entityMainMesh) entityMainMesh.position.set(0, 0, 17);
+      } else if (cycleTime < 16) {
+        gameStats.entityStage = 1; // Bio-Labs (CAM 03)
+        if (entityCCTVMesh) entityCCTVMesh.position.set(-30, 0, -3.5);
+      } else if (cycleTime < 24) {
+        gameStats.entityStage = 2; // Hallway (CAM 01 & visible in outer hall)
+        if (entityCCTVMesh) entityCCTVMesh.position.set(0, 0, -1.5);
+        if (entityMainMesh) entityMainMesh.position.set(0, 0, 9.5);
+        stepAudioCooldown -= dt;
+        if (stepAudioCooldown <= 0) {
+          playSound('footstep');
+          stepAudioCooldown = 1.6;
+        }
+      } else {
+        // Stage 3: At the Security Office Doorway!
+        gameStats.entityStage = 3;
+        if (entityMainMesh) entityMainMesh.position.set(0, 0, 4.3);
+
+        if (gameStats.doorClosed) {
+          // Blocked by the sealed blast door! Bangs on metal then retreats
+          stepAudioCooldown -= dt;
+          if (stepAudioCooldown <= 0) {
+            playSound('bang');
+            stepAudioCooldown = 2.2;
+          }
+        } else {
+          // Door is open — player has 4.5 seconds to seal it before breach
+          gameStats.entityAttackTimer += dt;
+          if (gameStats.entityAttackTimer >= 4.5) {
+            playSound('jumpscare');
+            triggerEndScreen("CONTAINMENT BREACH", "var(--accent-red)", "Subject 7 entered the unsealed Security Office.");
+          }
+        }
+      }
+
+      if (gameStats.entityStage < 3) {
+        gameStats.entityAttackTimer = 0;
+      }
+    }
+
+    function triggerEndScreen(title, color, desc) {
+      currentState = State.GAMEOVER;
+      try { document.exitPointerLock(); } catch (e) {}
+      document.getElementById('game-hud').classList.remove('active');
+      document.getElementById('cctv-overlay').classList.remove('active');
+      document.getElementById('terminal-overlay').classList.remove('active');
+      document.getElementById('end-title').textContent = title;
+      document.getElementById('end-title').style.color = color;
+      document.getElementById('end-desc').textContent = desc;
+      document.getElementById('end-screen').classList.add('active');
+    }
+  </script>
+</body>
+</html>
